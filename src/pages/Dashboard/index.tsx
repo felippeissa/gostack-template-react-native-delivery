@@ -54,25 +54,32 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
     navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      if (selectedCategory) {
-        api
-          .get(`/foods?category_like=${selectedCategory}`)
-          .then(({ data: foodList }) => {
-            setFoods(foodList);
-          });
-        return;
-      }
-      api
-        .get(`/foods?name_like=${searchValue.replace(' ', '+')}`)
-        .then(({ data: foodList }) => {
-          setFoods(foodList);
-        });
+      const response = await api.get('/foods', {
+        params: {
+          category_like: selectedCategory,
+          name_like: searchValue,
+        },
+      });
+
+      const foodList: Food[] = response.data;
+
+      const foodsToList = foodList.map(food => {
+        return {
+          id: food.id,
+          name: food.name,
+          description: food.description,
+          price: food.price,
+          thumbnail_url: food.thumbnail_url,
+          formattedPrice: formatValue(food.price),
+        };
+      });
+
+      setFoods(foodsToList);
     }
 
     loadFoods();
@@ -80,16 +87,16 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     async function loadCategories(): Promise<void> {
-      api.get('/categories').then(({ data: categoryList }) => {
-        setCategories(categoryList);
-      });
+      const response = await api.get('/categories');
+
+      setCategories(response.data);
     }
 
     loadCategories();
-  }, []);
+  }, [selectedCategory, searchValue]);
 
   function handleSelectCategory(id: number): void {
-    if (selectedCategory === id) {
+    if (id === selectedCategory) {
       setSelectedCategory(undefined);
     } else {
       setSelectedCategory(id);
